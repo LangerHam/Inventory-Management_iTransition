@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.36107.64
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Inventory-Management_iTransition", "Inventory-Management_iTransition.csproj", "{EE2A66FB-211D-4202-A6DF-1DCDD7E70151}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{EE2A66FB-211D-4202-A6DF-1DCDD7E70151}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EE2A66FB-211D-4202-A6DF-1DCDD7E70151}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EE2A66FB-211D-4202-A6DF-1DCDD7E70151}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EE2A66FB-211D-4202-A6DF-1DCDD7E70151}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DCE777F1-6022-4187-9D67-3E9F7C9D0D3E}
+	EndGlobalSection
+EndGlobal
