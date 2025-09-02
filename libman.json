@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "defaultProvider": "cdnjs",
+  "libraries": [
+    {
+      "library": "jquery-sortablejs@1.6.1",
+      "destination": "lib/jquery-sortablejs/"
+    },
+    {
+      "library": "tagify@4.35.4",
+      "destination": "lib/tagify/"
+    }
+  ]
+}
