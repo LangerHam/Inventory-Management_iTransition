@@ -13,7 +13,7 @@ namespace Inventory_Management_iTransition.Migrations
         
         string IMigrationMetadata.Id
         {
-            get { return "202509021521051_initCreate"; }
+            get { return "202509031414490_initCreate"; }
         }
         
         string IMigrationMetadata.Source

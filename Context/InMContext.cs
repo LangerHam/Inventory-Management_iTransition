@@ -15,7 +15,7 @@ namespace Inventory_Management_iTransition.Context
         // If you wish to target a different database and/or database provider, modify the 'InMContext' 
         // connection string in the application configuration file.
         public InMContext()
-            : base("DefaultConnection", throwIfV1Schema: false)
+            : base("InMContext", throwIfV1Schema: false)
         {
         }
 
@@ -70,6 +70,12 @@ namespace Inventory_Management_iTransition.Context
                 .WithMany()
                 .HasForeignKey(i => i.CreatedById)
                 .WillCascadeOnDelete(false);
+
+            modelBuilder.Entity<Inventory>()
+               .HasMany(i => i.CustomFields)
+               .WithRequired(cf => cf.Inventory)
+               .HasForeignKey(cf => cf.InventoryId)
+               .WillCascadeOnDelete(false);
         }
     }
 

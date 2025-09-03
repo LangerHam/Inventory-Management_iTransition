@@ -158,7 +158,7 @@
                         Order = c.Int(nullable: false),
                     })
                 .PrimaryKey(t => t.Id)
-                .ForeignKey("dbo.Inventories", t => t.InventoryId, cascadeDelete: true)
+                .ForeignKey("dbo.Inventories", t => t.InventoryId)
                 .Index(t => t.InventoryId);
             
             CreateTable(
@@ -241,6 +241,7 @@
             DropForeignKey("dbo.InventoryTags", "TagId", "dbo.Tags");
             DropForeignKey("dbo.InventoryTags", "InventoryId", "dbo.Inventories");
             DropForeignKey("dbo.CustomIdElements", "InventoryId", "dbo.Inventories");
+            DropForeignKey("dbo.CustomFields", "InventoryId", "dbo.Inventories");
             DropForeignKey("dbo.Comments", "InventoryId", "dbo.Inventories");
             DropForeignKey("dbo.AspNetUserRoles", "UserId", "dbo.AspNetUsers");
             DropForeignKey("dbo.AspNetUserLogins", "UserId", "dbo.AspNetUsers");
@@ -249,7 +250,6 @@
             DropForeignKey("dbo.Items", "InventoryId", "dbo.Inventories");
             DropForeignKey("dbo.CustomFieldValues", "ItemId", "dbo.Items");
             DropForeignKey("dbo.CustomFieldValues", "CustomFieldId", "dbo.CustomFields");
-            DropForeignKey("dbo.CustomFields", "InventoryId", "dbo.Inventories");
             DropForeignKey("dbo.Items", "CreatedById", "dbo.AspNetUsers");
             DropForeignKey("dbo.Inventories", "OwnerId", "dbo.AspNetUsers");
             DropForeignKey("dbo.Comments", "AuthorId", "dbo.AspNetUsers");
