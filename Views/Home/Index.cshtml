@@ -1,0 +1,90 @@
+﻿@model Inventory_Management_iTransition.ViewModel.HomeViewModel
+@{
+    Layout = null;
+    ViewBag.Title = "Home Page";
+}
+
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="p-5 mb-4 bg-light rounded-3">
+        <div class="container-fluid py-5">
+            <h1 class="display-5 fw-bold">Welcome to the Inventory Hub</h1>
+            <p class="col-md-8 fs-4">Create, manage, and share custom inventories for any purpose. Browse the latest collections below or search for something specific.</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Left Column: Latest & Popular Inventories -->
+        <div class="col-lg-8">
+            <!-- Latest Inventories -->
+            <h3 class="mb-3">Latest Inventories</h3>
+            <div class="list-group mb-4">
+                @if (Model.LatestInventories.Any())
+                {
+                    foreach (var inventory in Model.LatestInventories)
+                    {
+                        <a href="@Url.Action("Details", "Inventory", new { id = inventory.Id })" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">@inventory.Title</h5>
+                                <small class="text-muted">@inventory.Items.Count() items</small>
+                            </div>
+                            <p class="mb-1">@inventory.Description.Substring(0, Math.Min(inventory.Description.Length, 150))...</p>
+                            <small class="text-muted">Created by @inventory.Owner.UserName in @inventory.Category.Name</small>
+                        </a>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted">No inventories have been created yet.</p>
+                }
+            </div>
+
+            <!-- Most Popular Inventories -->
+            <h3 class="mb-3">Most Popular Inventories</h3>
+            <div class="list-group">
+                @if (Model.PopularInventories.Any())
+                {
+                    foreach (var inventory in Model.PopularInventories)
+                    {
+                        <a href="@Url.Action("Details", "Inventory", new { id = inventory.Id })" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h5 class="mb-1">@inventory.Title</h5>
+                                <span class="badge bg-primary rounded-pill">@inventory.Items.Count() items</span>
+                            </div>
+                            <small class="text-muted">Created by @inventory.Owner.UserName</small>
+                        </a>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted">No popular inventories to show yet.</p>
+                }
+            </div>
+        </div>
+
+        <!-- Right Column: Tag Cloud -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Tags</h4>
+                </div>
+                <div class="card-body">
+                    @if (Model.TagCloud.Any())
+                    {
+                        foreach (var tag in Model.TagCloud)
+                        {
+                            var fontSize = "1rem";
+                            <a href="@Url.Action("Search", "Home", new { query = tag.Name })" class="btn btn-sm btn-outline-secondary m-1" style="font-size: @fontSize;">
+                                @tag.Name
+                            </a>
+                        }
+                    }
+                    else
+                    {
+                        <p class="text-muted">No tags have been added yet.</p>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

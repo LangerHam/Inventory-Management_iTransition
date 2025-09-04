@@ -1,0 +1,60 @@
+﻿@using Inventory_Management_iTransition.ViewModel
+@model LoginViewModel
+@{
+    Layout = null;
+    ViewBag.Title = "Login";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card mt-4">
+            <div class="card-header">
+                <h2 class="card-title text-center">@ViewBag.Title</h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <section id="loginForm">
+                            @using (Html.BeginForm("Login", "Account", new { ReturnUrl = ViewBag.ReturnUrl }, FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
+                            {
+                                @Html.AntiForgeryToken()
+                                <h4>Use a local account to log in.</h4>
+                                <hr />
+                                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+                                <div class="mb-3">
+                                    @Html.LabelFor(m => m.Email, new { @class = "form-label" })
+                                    @Html.TextBoxFor(m => m.Email, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.Email, "", new { @class = "text-danger" })
+                                </div>
+                                <div class="mb-3">
+                                    @Html.LabelFor(m => m.Password, new { @class = "form-label" })
+                                    @Html.PasswordFor(m => m.Password, new { @class = "form-control" })
+                                    @Html.ValidationMessageFor(m => m.Password, "", new { @class = "text-danger" })
+                                </div>
+                                <div class="mb-3 form-check">
+                                    @Html.CheckBoxFor(m => m.RememberMe, new { @class = "form-check-input" })
+                                    @Html.LabelFor(m => m.RememberMe, new { @class = "form-check-label" })
+                                </div>
+                                <div class="d-grid">
+                                    <input type="submit" value="Log in" class="btn btn-primary" />
+                                </div>
+                                <p class="mt-3">
+                                    @Html.ActionLink("Register as a new user", "Register")
+                                </p>
+                            }
+                        </section>
+                    </div>
+                    <div class="col-md-6">
+                        <section id="socialLoginForm">
+                            <h4>Use another service to log in.</h4>
+                            <hr />
+                            @{
+                                Html.RenderAction("ExternalLoginsList", new { ReturnUrl = ViewBag.ReturnUrl });
+                            }
+                        </section>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
