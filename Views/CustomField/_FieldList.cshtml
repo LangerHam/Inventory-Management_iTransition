@@ -1,0 +1,76 @@
+﻿@model Inventory_Management_iTransition.ViewModel.CustomFieldManagementViewModel
+
+<div id="custom-field-manager">
+    <div class="row">
+        <div class="col-md-7">
+            <h5>Existing Fields</h5>
+            @if (!Model.Fields.Any())
+            {
+                <p class="text-muted">No custom fields have been added yet.</p>
+            }
+            else
+            {
+                <table class="table table-sm table-hover">
+                    <thead>
+                        <tr>
+                            <th>Title</th>
+                            <th>Type</th>
+                            <th>Show in Table</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var field in Model.Fields)
+                        {
+                            <tr>
+                                <td>@Html.DisplayFor(modelItem => field.Title)</td>
+                                <td>@Html.DisplayFor(modelItem => field.Type)</td>
+                                <td>@(field.DisplayInItemTable ? "Yes" : "No")</td>
+                                <td class="text-end">
+                                    @using (Html.BeginForm("Delete", "CustomField", new { id = field.Id }, FormMethod.Post, new { @class = "d-inline delete-field-form" }))
+                                    {
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('Are you sure you want to delete this field? This will also delete all data entered for this field across all items.');">
+                                            Delete
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+        <div class="col-md-5">
+            <div class="card bg-light">
+                <div class="card-body">
+                    <h5 class="card-title">Add New Field</h5>
+                    @using (Html.BeginForm("Create", "CustomField", FormMethod.Post, new { id = "create-field-form" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.HiddenFor(m => m.InventoryId)
+
+                        <div class="mb-3">
+                            @Html.LabelFor(m => m.NewField.Title, new { @class = "form-label" })
+                            @Html.TextBoxFor(m => m.NewField.Title, new { @class = "form-control" })
+                            @Html.ValidationMessageFor(m => m.NewField.Title, "", new { @class = "text-danger" })
+                        </div>
+
+                        <div class="mb-3">
+                            @Html.LabelFor(m => m.NewField.FieldType, new { @class = "form-label" })
+                            @Html.EnumDropDownListFor(m => m.NewField.FieldType, "Select Type", new { @class = "form-select" })
+                            @Html.ValidationMessageFor(m => m.NewField.FieldType, "", new { @class = "text-danger" })
+                        </div>
+
+                        <div class="form-check mb-3">
+                            @Html.CheckBoxFor(m => m.NewField.ShowInItemTable, new { @class = "form-check-input" })
+                            @Html.LabelFor(m => m.NewField.ShowInItemTable, new { @class = "form-check-label" })
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Add Field</button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

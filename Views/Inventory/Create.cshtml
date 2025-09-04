@@ -1,0 +1,54 @@
+﻿@model Inventory_Management_iTransition.ViewModel.InventoryFormViewModel
+@{
+    ViewBag.Title = "Create New Inventory";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="mb-0">@ViewBag.Title</h3>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Create a new inventory to start tracking items. Fill in the details below.</p>
+                <hr />
+                @using (Html.BeginForm())
+                {
+                    @Html.AntiForgeryToken()
+                    @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+                    <div class="form-group mb-3">
+                        @Html.LabelFor(model => model.Title, new { @class = "form-label" })
+                        @Html.EditorFor(model => model.Title, new { htmlAttributes = new { @class = "form-control form-control-lg", placeholder = "e.g., Office Laptops" } })
+                        @Html.ValidationMessageFor(model => model.Title, "", new { @class = "text-danger" })
+                    </div>
+
+                    <div class="form-group mb-3">
+                        @Html.LabelFor(model => model.Description, new { @class = "form-label" })
+                        @Html.TextAreaFor(model => model.Description, 5, 30, new { @class = "form-control", placeholder = "A brief description of what this inventory is for." })
+                        @Html.ValidationMessageFor(model => model.Description, "", new { @class = "text-danger" })
+                    </div>
+
+                    <div class="form-group mb-3">
+                        @Html.LabelFor(model => model.CategoryId, new { @class = "form-label" })
+                        @Html.DropDownListFor(model => model.CategoryId, new SelectList(Model.Categories, "Id", "Name"), "--- Select a Category ---", new { @class = "form-select" })
+                        @Html.ValidationMessageFor(model => model.CategoryId, "", new { @class = "text-danger" })
+                    </div>
+
+                    <div class="form-group form-check mb-4">
+                        @Html.EditorFor(model => model.IsPublic, new { @class = "form-check-input" })
+                        @Html.LabelFor(model => model.IsPublic, "Make this inventory public?", new { @class = "form-check-label" })
+                        <small class="form-text text-muted d-block">If checked, any logged-in user can add items.</small>
+                        @Html.ValidationMessageFor(model => model.IsPublic, "", new { @class = "text-danger" })
+                    </div>
+
+                    <div class="d-flex justify-content-end">
+                        @Html.ActionLink("Cancel", "Index", null, new { @class = "btn btn-secondary mr-2" })
+                        <input type="submit" value="Create Inventory" class="btn btn-primary" />
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,56 @@
+﻿@model Inventory_Management_iTransition.ViewModel.InventoryFormViewModel
+
+@using (Html.BeginForm("Edit", "Inventory", FormMethod.Post, new { id = "inventory-settings-form" }))
+{
+    @Html.AntiForgeryToken()
+    @Html.HiddenFor(m => m.Id)
+    @Html.HiddenFor(m => m.RowVersion)
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-3">
+                        @Html.LabelFor(m => m.Title, new { @class = "form-label" })
+                        @Html.TextBoxFor(m => m.Title, new { @class = "form-control" })
+                        @Html.ValidationMessageFor(m => m.Title, "", new { @class = "text-danger" })
+                    </div>
+
+                    <div class="mb-3">
+                        @Html.LabelFor(m => m.Description, new { @class = "form-label" })
+                        @Html.TextAreaFor(m => m.Description, new { @class = "form-control", @rows = 5 })
+                        @Html.ValidationMessageFor(m => m.Description, "", new { @class = "text-danger" })
+                    </div>
+
+                    <div class="mb-3">
+                        @Html.LabelFor(m => m.CategoryId, new { @class = "form-label" })
+                        @Html.DropDownListFor(m => m.CategoryId, Model.Categories, "Select a Category", new { @class = "form-select" })
+                        @Html.ValidationMessageFor(m => m.CategoryId, "", new { @class = "text-danger" })
+                    </div>
+
+                    <div class="form-check mb-3">
+                        @Html.CheckBoxFor(m => m.IsPublic, new { @class = "form-check-input" })
+                        @Html.LabelFor(m => m.IsPublic, new { @class = "form-check-label" })
+                        <div class="form-text">If checked, any logged-in user can add items to this inventory.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div id="save-status" class="sticky-top" style="top: 20px;">
+                @if (!string.IsNullOrEmpty(Model.SaveMessage))
+                {
+                    <div class="alert alert-success" role="alert">
+                        @Model.SaveMessage
+                    </div>
+                }
+                else if (!Html.ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger" role="alert">
+                        Please correct the validation errors.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+}

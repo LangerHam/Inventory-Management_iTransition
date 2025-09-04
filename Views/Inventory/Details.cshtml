@@ -1,0 +1,222 @@
+﻿@model Inventory_Management_iTransition.ViewModel.InventoryDetailViewModel
+@{
+    ViewBag.Title = Model.Inventory.Title;
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@functions {
+    public string GetAntiForgeryToken()
+    {
+        string cookieToken, formToken;
+        System.Web.Helpers.AntiForgery.GetTokens(null, out cookieToken, out formToken);
+        return cookieToken + ":" + formToken;
+    }
+}
+<div class="container mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">@Model.Inventory.Title</h2>
+            <p class="text-muted mb-0">Owned by @Model.Inventory.Owner.UserName</p>
+        </div>
+        <div>
+            @Html.ActionLink("Add New Item", "Create", "Item", new { inventoryId = Model.Inventory.Id }, new { @class = "btn btn-primary" })
+        </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <ul class="nav nav-tabs" id="inventoryTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="items-tab" data-bs-toggle="tab" data-bs-target="#items" type="button" role="tab" aria-controls="items" aria-selected="true">Items</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="fields-tab" data-bs-toggle="tab" data-bs-target="#fields" type="button" role="tab" aria-controls="fields" aria-selected="false">Fields</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="customid-tab" data-bs-toggle="tab" data-bs-target="#customid" type="button" role="tab" aria-controls="customid" aria-selected="false">Custom ID</button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="settings-tab" data-bs-toggle="tab" data-bs-target="#settings" type="button" role="tab" aria-controls="settings" aria-selected="false">Settings</button>
+        </li>
+    </ul>
+
+    <!-- Tabs Content -->
+    <div class="tab-content pt-3" id="inventoryTabContent">
+        <!-- Items Tab -->
+        <div class="tab-pane fade show active" id="items" role="tabpanel" aria-labelledby="items-tab">
+            <div class="card">
+                <div class="card-body">
+                    @if (!Model.Inventory.Items.Any())
+                    {
+                        <p class="text-center text-muted">No items have been added to this inventory yet.</p>
+                    }
+                    else
+                    {
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Custom ID</th>
+                                    <th>Created By</th>
+                                    <th>Created Date</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Inventory.Items)
+                                {
+                                    <tr>
+                                        <td><strong>@Html.DisplayFor(modelItem => item.CustomId)</strong></td>
+                                        <td>@Html.DisplayFor(modelItem => item.CreatedBy.UserName)</td>
+                                        <td>@item.CreatedAt.ToString("g")</td>
+                                        <td class="text-end">
+                                            @Html.ActionLink("View Details", "Details", "Item", new { id = item.Id }, new { @class = "btn btn-sm btn-outline-primary" })
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    }
+                </div>
+            </div>
+
+            <!-- Fields Tab -->
+            <div class="tab-pane fade" id="fields" role="tabpanel" aria-labelledby="fields-tab">
+                <div id="fields-content-placeholder">
+                    <p class="text-center text-muted"><span class="spinner-border spinner-border-sm"></span> Loading field editor...</p>
+                </div>
+            </div>
+
+            <!-- Custom ID Tab -->
+            <div class="tab-pane fade" id="customid" role="tabpanel" aria-labelledby="customid-tab">
+                <div id="customid-content-placeholder">
+                    <p class="text-center text-muted"><span class="spinner-border spinner-border-sm"></span> Loading ID manager...</p>
+                </div>
+            </div>
+
+            <!-- Settings Tab -->
+            <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
+                <div id="settings-content-placeholder">
+                    <p class="text-center text-muted"><span class="spinner-border spinner-border-sm"></span> Loading settings...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @section Scripts {
+        <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+        <script>
+        $(document).ready(function () {
+            var inventoryId = @Model.Inventory.Id;
+            var antiForgeryToken = '@GetAntiForgeryToken()';
+
+            // --- Fields Tab Logic ---
+            var fieldsTab = $('#fields-tab');
+            var fieldsPlaceholder = $('#fields-content-placeholder');
+            var fieldsLoaded = false;
+            fieldsTab.on('shown.bs.tab', function (e) {
+                if (!fieldsLoaded) {
+                    fieldsPlaceholder.load('@Url.Action("_FieldList", "CustomField")?inventoryId=' + inventoryId, function(response, status, xhr) {
+                        if (status == "error") { fieldsPlaceholder.html("<p class='text-danger'>Error loading field editor.</p>"); }
+                        fieldsLoaded = true;
+                    });
+                }
+            });
+            fieldsPlaceholder.on('submit', '#create-field-form, .delete-field-form', function (e) {
+                e.preventDefault();
+                var form = $(this);
+                $.ajax({
+                    url: form.attr('action'),
+                    type: form.attr('method'),
+                    data: form.serialize(),
+                    success: function (result) { fieldsPlaceholder.html(result); },
+                    error: function () { alert('An error occurred.'); }
+                });
+            });
+
+            // --- Custom ID Tab Logic ---
+            var customIdTab = $('#customid-tab');
+            var customIdPlaceholder = $('#customid-content-placeholder');
+            var customIdLoaded = false;
+            customIdTab.on('shown.bs.tab', function (e) {
+                if (!customIdLoaded) {
+                    customIdPlaceholder.load('@Url.Action("_IdManager", "CustomId")?inventoryId=' + inventoryId, function(response, status, xhr) {
+                        if (status == "error") { customIdPlaceholder.html("<p class='text-danger'>Error loading ID manager.</p>"); }
+                        else {
+                            var list = document.getElementById('id-element-list');
+                            if(list) {
+                                new Sortable(list, {
+                                    animation: 150,
+                                    ghostClass: 'bg-info',
+                                    onEnd: function (evt) {
+                                        var sortable = this;
+                                        var orderedIds = [].slice.call(sortable.el.children).map(function (item) {
+                                            return $(item).data('id');
+                                        });
+
+                                        $.ajax({
+                                            url: '@Url.Action("Reorder", "CustomId")',
+                                            type: 'POST',
+                                            contentType: 'application/json; charset=utf-8',
+                                            headers: { 'RequestVerificationToken': antiForgeryToken },
+                                            data: JSON.stringify({ inventoryId: inventoryId, orderedIds: orderedIds }),
+                                            error: function () {
+                                                alert('Could not save the new order.');
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                        }
+                        customIdLoaded = true;
+                    });
+                }
+            });
+            customIdPlaceholder.on('submit', '#create-element-form, .delete-element-form', function (e) {
+                e.preventDefault();
+                var form = $(this);
+                $.ajax({
+                    url: form.attr('action'),
+                    type: form.attr('method'),
+                    data: form.serialize(),
+                    success: function (result) { customIdPlaceholder.html(result); },
+                    error: function () { alert('An error occurred.'); }
+                });
+            });
+            // --- Settings Tab Logic (with Auto-Save) ---
+            var settingsTab = $('#settings-tab');
+            var settingsPlaceholder = $('#settings-content-placeholder');
+            var autoSaveTimer;
+
+            settingsTab.one('shown.bs.tab', function (e) {
+                settingsPlaceholder.load('@Url.Action("_Settings", "Inventory")?inventoryId=' + inventoryId);
+            });
+
+            settingsPlaceholder.on('input change', '#inventory-settings-form :input', function () {
+                clearTimeout(autoSaveTimer);
+                autoSaveTimer = setTimeout(function () {
+                    $('#inventory-settings-form').submit();
+                }, 8000);
+            });
+
+            settingsPlaceholder.on('submit', '#inventory-settings-form', function (e) {
+                e.preventDefault();
+                clearTimeout(autoSaveTimer); 
+
+                var form = $(this);
+                $.ajax({
+                    url: form.attr('action'),
+                    type: form.attr('method'),
+                    data: form.serialize(),
+                    success: function (result) {
+                        // Replace the content with the updated partial view from the server.
+                        settingsPlaceholder.html(result);
+                    },
+                    error: function () {
+                        alert('An error occurred while saving settings.');
+                    }
+                });
+            });
+        });
+        </script>
+    }
+

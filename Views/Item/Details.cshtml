@@ -1,0 +1,52 @@
+﻿@model Inventory_Management_iTransition.Models.Item
+@{
+    ViewBag.Title = "Item Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <div>
+                <h2 class="mb-0">Item: <span class="text-primary">@Model.CustomId</span></h2>
+                <p class="text-muted mb-0">In Inventory: @Html.ActionLink(Model.Inventory.Title, "Details", "Inventory", new { id = Model.InventoryId }, null)</p>
+            </div>
+            <div>
+                @* TODO: Add Edit and Delete buttons here, visible only to authorized users *@
+            </div>
+        </div>
+        <div class="card-body">
+            <dl class="row">
+                <dt class="col-sm-3">Created By</dt>
+                <dd class="col-sm-9">@Model.CreatedBy.UserName</dd>
+
+                <dt class="col-sm-3">Created At</dt>
+                <dd class="col-sm-9">@Model.CreatedAt.ToString("g")</dd>
+
+                <dt class="col-sm-3">Likes</dt>
+                <dd class="col-sm-9">
+                    <span class="badge bg-danger rounded-pill">
+                        <i class="bi bi-heart-fill"></i> @Model.Likes.Count()
+                    </span>
+                </dd>
+            </dl>
+
+            <hr />
+
+            <h4 class="mt-4 mb-3">Custom Fields</h4>
+            <dl class="row">
+                @foreach (var fieldValue in Model.CustomFieldValues)
+                {
+                    <dt class="col-sm-3">@fieldValue.CustomField.Title</dt>
+                    <dd class="col-sm-9">
+                        @* TODO: Add special rendering for links, checkboxes, etc. *@
+                        @Html.DisplayFor(modelItem => fieldValue.Value)
+                    </dd>
+                }
+            </dl>
+        </div>
+        <div class="card-footer text-muted">
+            Last Updated: @Model.UpdatedAt.ToString("g")
+        </div>
+    </div>
+</div>

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Web;
+using System.Web.Mvc;
 
 namespace Inventory_Management_iTransition.ViewModel
 {
@@ -37,9 +38,12 @@ namespace Inventory_Management_iTransition.ViewModel
         [Display(Name = "Make Inventory Public?")]
         public bool IsPublic { get; set; }
 
+        [Display(Name = "Tags (comma-separated)")]
         public string Tags { get; set; }
+        public byte[] RowVersion { get; set; }
 
-        public IEnumerable<Category> Categories { get; set; }
+        public IEnumerable<SelectListItem> Categories { get; set; }
+        public string SaveMessage { get; set; }
 
         public InventoryFormViewModel()
         {

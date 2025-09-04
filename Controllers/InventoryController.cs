@@ -5,6 +5,7 @@ using Microsoft.AspNet.Identity;
 using System;
 using System.Collections.Generic;
 using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -72,9 +73,10 @@ namespace Inventory_Management_iTransition.Controllers
 
         public async Task<ActionResult> Create()
         {
+            var categories = await db.Categories.OrderBy(c => c.Name).ToListAsync();
             var viewModel = new InventoryFormViewModel
             {
-                Categories = await db.Categories.ToListAsync()
+                Categories = new SelectList(categories, "Id", "Name")
             };
             return View(viewModel);
         }
@@ -95,13 +97,100 @@ namespace Inventory_Management_iTransition.Controllers
                 };
 
 
+                if (!string.IsNullOrWhiteSpace(viewModel.Tags))
+                {
+                    var tagNames = viewModel.Tags.Split(',').Select(t => t.Trim().ToLower()).Where(t => !string.IsNullOrEmpty(t));
+                    foreach (var tagName in tagNames)
+                    {
+                        var tag = await db.Tags.FirstOrDefaultAsync(t => t.Name == tagName) ?? new Tag { Name = tagName };
+                        inventory.InventoryTags.Add(new InventoryTag { Tag = tag });
+                    }
+                }
+
                 db.Inventories.Add(inventory);
                 await db.SaveChangesAsync();
                 return RedirectToAction("Index");
             }
 
-            viewModel.Categories = await db.Categories.ToListAsync();
+            var allCategories = await db.Categories.OrderBy(c => c.Name).ToListAsync();
+            viewModel.Categories = new SelectList(allCategories, "Id", "Name", viewModel.CategoryId);
             return View(viewModel);
+        }
+
+        public async Task<ActionResult> _Settings(int inventoryId)
+        {
+            var inventory = await db.Inventories.FindAsync(inventoryId);
+            if (inventory == null) { return HttpNotFound(); }
+
+            var currentUserId = User.Identity.GetUserId();
+            if (inventory.OwnerId != currentUserId && !User.IsInRole("Admin"))
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            }
+
+            var viewModel = new InventoryFormViewModel
+            {
+                Id = inventory.Id,
+                Title = inventory.Title,
+                Description = inventory.Description,
+                CategoryId = inventory.CategoryId,
+                IsPublic = inventory.IsPublic,
+                RowVersion = inventory.RowVersion,
+                Categories = new SelectList(await db.Categories.ToListAsync(), "Id", "Name", inventory.CategoryId)
+            };
+
+            return PartialView("_Settings", viewModel);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> Edit(InventoryFormViewModel viewModel)
+        {
+            if (!ModelState.IsValid)
+            {
+                viewModel.Categories = new SelectList(await db.Categories.ToListAsync(), "Id", "Name", viewModel.CategoryId);
+                return PartialView("_Settings", viewModel);
+            }
+
+            var inventoryToUpdate = await db.Inventories.FindAsync(viewModel.Id);
+            if (inventoryToUpdate == null) { return HttpNotFound(); }
+
+            var currentUserId = User.Identity.GetUserId();
+            if (inventoryToUpdate.OwnerId != currentUserId && !User.IsInRole("Admin"))
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+            }
+
+            inventoryToUpdate.Title = viewModel.Title;
+            inventoryToUpdate.Description = viewModel.Description;
+            inventoryToUpdate.CategoryId = viewModel.CategoryId;
+            inventoryToUpdate.IsPublic = viewModel.IsPublic;
+
+            db.Entry(inventoryToUpdate).OriginalValues["RowVersion"] = viewModel.RowVersion;
+
+            try
+            {
+                await db.SaveChangesAsync();
+
+                var newViewModel = new InventoryFormViewModel
+                {
+                    Id = inventoryToUpdate.Id,
+                    Title = inventoryToUpdate.Title,
+                    Description = inventoryToUpdate.Description,
+                    CategoryId = inventoryToUpdate.CategoryId,
+                    IsPublic = inventoryToUpdate.IsPublic,
+                    RowVersion = inventoryToUpdate.RowVersion,
+                    Categories = new SelectList(await db.Categories.ToListAsync(), "Id", "Name", inventoryToUpdate.CategoryId),
+                    SaveMessage = "All changes saved."
+                };
+                return PartialView("_Settings", newViewModel);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                ModelState.AddModelError(string.Empty, "The record you attempted to edit was modified by another user after you got the original value. Your edit operation was canceled.");
+                viewModel.Categories = new SelectList(await db.Categories.ToListAsync(), "Id", "Name", viewModel.CategoryId);
+                return PartialView("_Settings", viewModel);
+            }
         }
     }
 }
