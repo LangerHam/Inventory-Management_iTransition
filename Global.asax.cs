@@ -19,7 +19,6 @@ namespace Inventory_Management_iTransition
             RouteConfig.RegisterRoutes(RouteTable.Routes);
             BundleConfig.RegisterBundles(BundleTable.Bundles);
 
-            BundleTable.EnableOptimizations = false;
 
         }
     }
