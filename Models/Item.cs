@@ -37,6 +37,7 @@ namespace Inventory_Management_iTransition.Models
 
         public virtual ICollection<CustomFieldValue> CustomFieldValues { get; set; }
         public virtual ICollection<Like> Likes { get; set; }
+        public int? SequenceNumber { get; set; }
 
         public Item()
         {

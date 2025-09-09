@@ -13,6 +13,10 @@ namespace Inventory_Management_iTransition.ViewModel
         public string InventoryTitle { get; set; }
 
         public List<CustomFieldValueViewModel> FieldValues { get; set; }
+        public ItemFormViewModel()
+        {
+            FieldValues = new List<CustomFieldValueViewModel>();
+        }
     }
     public class CustomFieldValueViewModel
     {

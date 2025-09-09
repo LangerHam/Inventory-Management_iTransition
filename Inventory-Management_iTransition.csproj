@@ -334,6 +334,10 @@
     <Compile Include="Migrations\202509031414490_initCreate.Designer.cs">
       <DependentUpon>202509031414490_initCreate.cs</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\202509091437248_itemsChange.cs" />
+    <Compile Include="Migrations\202509091437248_itemsChange.Designer.cs">
+      <DependentUpon>202509091437248_itemsChange.cs</DependentUpon>
+    </Compile>
     <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\ApplicationUser.cs" />
     <Compile Include="Models\Category.cs" />
@@ -489,6 +493,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Migrations\202509031414490_initCreate.resx">
       <DependentUpon>202509031414490_initCreate.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\202509091437248_itemsChange.resx">
+      <DependentUpon>202509091437248_itemsChange.cs</DependentUpon>
     </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>

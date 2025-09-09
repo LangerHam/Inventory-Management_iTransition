@@ -10,6 +10,7 @@ using System.Net;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Mvc;
+using Inventory_Management_iTransition.Services;
 
 namespace Inventory_Management_iTransition.Controllers
 {
@@ -17,6 +18,7 @@ namespace Inventory_Management_iTransition.Controllers
     public class ItemController : Controller
     {
         private InMContext db;
+        private readonly IdFormatService _idFormatService = new IdFormatService();
 
         public ItemController()
         {
@@ -83,16 +85,16 @@ namespace Inventory_Management_iTransition.Controllers
         {
             if (!ModelState.IsValid)
             {
+                var inventoryForForm = await db.Inventories.Include(i => i.CustomFields).FirstOrDefaultAsync(i => i.Id == viewModel.InventoryId);
+                viewModel.InventoryTitle = inventoryForForm.Title;
+                viewModel.FieldValues = inventoryForForm.CustomFields.Select(cf => new CustomFieldValueViewModel
+                {
+                    CustomFieldId = cf.Id,
+                    FieldName = cf.Title,
+                    FieldType = cf.Type
+                }).ToList();
                 return View(viewModel);
             }
-
-            var inventory = await db.Inventories.FindAsync(viewModel.InventoryId);
-            if (inventory == null)
-            {
-                return HttpNotFound();
-            }
-
-            // TODO: Add security check here (same as GET)
 
             var userId = User.Identity.GetUserId();
             var newItem = new Item
@@ -100,28 +102,79 @@ namespace Inventory_Management_iTransition.Controllers
                 InventoryId = viewModel.InventoryId,
                 CreatedById = userId,
                 CreatedAt = DateTime.UtcNow,
-                RowVersion = new byte[8], 
-                // TODO: Implement the actual custom ID generation logic here.
-
-                CustomId = Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()
+                UpdatedAt = DateTime.UtcNow,
             };
 
-            newItem.CustomFieldValues = new List<CustomFieldValue>();
-            foreach (var fieldValueModel in viewModel.FieldValues)
+            var inventory = await db.Inventories.Include(i => i.CustomIdElements).FirstOrDefaultAsync(i => i.Id == viewModel.InventoryId);
+            if (inventory == null) return HttpNotFound();
+
+            for (int i = 0; i < 5; i++)
             {
-                var customFieldValue = new CustomFieldValue
+                var generatedId = await _idFormatService.GenerateIdAsync(inventory, db);
+                var isDuplicate = await db.Items.AnyAsync(it => it.InventoryId == viewModel.InventoryId && it.CustomId == generatedId);
+
+                if (!isDuplicate)
                 {
-                    CustomFieldId = fieldValueModel.CustomFieldId,
-                    Item = newItem,
-                    Value = fieldValueModel.Value
-                };
-                newItem.CustomFieldValues.Add(customFieldValue);
+                    newItem.CustomId = generatedId;
+                    break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(newItem.CustomId))
+            {
+                ModelState.AddModelError("", "Could not generate a unique item ID. The inventory may be very busy. Please try again.");
+                var inventoryForForm = await db.Inventories.Include(i => i.CustomFields).FirstOrDefaultAsync(i => i.Id == viewModel.InventoryId);
+                viewModel.InventoryTitle = inventoryForForm.Title;
+                viewModel.FieldValues = inventoryForForm.CustomFields.Select(cf => new CustomFieldValueViewModel
+                {
+                    CustomFieldId = cf.Id,
+                    FieldName = cf.Title,
+                    FieldType = cf.Type
+                }).ToList();
+                return View(viewModel);
             }
 
             db.Items.Add(newItem);
             await db.SaveChangesAsync();
 
+            foreach (var fieldValueModel in viewModel.FieldValues)
+            {
+                var customFieldValue = new CustomFieldValue
+                {
+                    ItemId = newItem.Id,
+                    CustomFieldId = fieldValueModel.CustomFieldId,
+                    Value = fieldValueModel.Value ?? (fieldValueModel.FieldType == FieldType.Checkbox ? "false" : "")
+                };
+                db.CustomFieldValues.Add(customFieldValue);
+            }
+
+            await db.SaveChangesAsync();
+
             return RedirectToAction("Details", "Inventory", new { id = viewModel.InventoryId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<ActionResult> DeleteMultiple(IEnumerable<int> itemIds, int inventoryId)
+        {
+            if (itemIds != null && itemIds.Any())
+            {
+                var itemsToDelete = await db.Items
+                    .Where(i => itemIds.Contains(i.Id) && i.InventoryId == inventoryId)
+                    .ToListAsync();
+
+                var inventory = await db.Inventories.FindAsync(inventoryId);
+                var currentUserId = User.Identity.GetUserId();
+                if (inventory.OwnerId != currentUserId && !User.IsInRole("Admin"))
+                {
+                    return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
+                }
+
+                db.Items.RemoveRange(itemsToDelete);
+                await db.SaveChangesAsync();
+            }
+
+            return RedirectToAction("Details", "Inventory", new { id = inventoryId });
         }
     }
 }
