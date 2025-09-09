@@ -9,6 +9,7 @@ namespace Inventory_Management_iTransition
         public void Configuration(IAppBuilder app)
         {
             ConfigureAuth(app);
+            app.MapSignalR();
         }
     }
 }

@@ -1,0 +1,36 @@
+﻿@model IEnumerable<Inventory_Management_iTransition.Models.Inventory>
+@{
+    ViewBag.Title = "Search Results";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <h2>Search Results for "@ViewBag.Query"</h2>
+    <p class="text-muted">Found @Model.Count() matching inventories.</p>
+    <hr />
+
+    <div class="list-group">
+        @if (Model.Any())
+        {
+            foreach (var inventory in Model)
+            {
+                <a href="@Url.Action("Details", "Inventory", new { id = inventory.Id })" class="list-group-item list-group-item-action">
+                    <div class="d-flex w-100 justify-content-between">
+                        <h5 class="mb-1">@inventory.Title</h5>
+                        <small class="text-muted">@inventory.Items.Count() items</small>
+                    </div>
+                    <p class="mb-1">@inventory.Description.Substring(0, Math.Min(inventory.Description.Length, 150))...</p>
+                    <small class="text-muted">Created by @inventory.Owner.UserName in @inventory.Category.Name</small>
+                </a>
+            }
+        }
+        else
+        {
+            <div class="alert alert-warning" role="alert">
+                No inventories were found that match your search query.
+            </div>
+        }
+    </div>
+</div>
+
+

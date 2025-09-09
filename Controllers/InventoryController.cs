@@ -43,7 +43,8 @@ namespace Inventory_Management_iTransition.Controllers
             return View(viewModel);
         }
 
-        [AllowAnonymous]
+        
+        [AllowAnonymous]
         public async Task<ActionResult> Details(int? id)
         {
             if (id == null)
@@ -54,7 +55,7 @@ namespace Inventory_Management_iTransition.Controllers
             var inventory = await db.Inventories
                 .Include(i => i.Owner)
                 .Include(i => i.Items.Select(item => item.CreatedBy))
-                .Include("Comments.User")
+                .Include(i => i.Comments.Select(c => c.Author)) 
                 .Include(i => i.CustomFields)
                 .FirstOrDefaultAsync(i => i.Id == id);
 
@@ -191,6 +192,18 @@ namespace Inventory_Management_iTransition.Controllers
                 viewModel.Categories = new SelectList(await db.Categories.ToListAsync(), "Id", "Name", viewModel.CategoryId);
                 return PartialView("_Settings", viewModel);
             }
+        }
+
+        [ChildActionOnly]
+        public async Task<ActionResult> _Discussion(int inventoryId)
+        {
+            var inventory = await db.Inventories
+                .Include(i => i.Comments.Select(c => c.Author))
+                .FirstOrDefaultAsync(i => i.Id == inventoryId);
+
+            if (inventory == null) return HttpNotFound();
+
+            return PartialView("_Discussion", inventory);
         }
     }
 }

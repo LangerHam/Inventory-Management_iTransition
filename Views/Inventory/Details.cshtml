@@ -93,6 +93,13 @@
                 </div>
             </div>
 
+            <!-- Discussion Tab -->
+            <div class="tab-pane fade" id="discussion" role="tabpanel" aria-labelledby="discussion-tab">
+                <div id="discussion-content-placeholder">
+                    <p class="text-center text-muted"><span class="spinner-border spinner-border-sm"></span> Loading discussion...</p>
+                </div>
+            </div>
+
             <!-- Settings Tab -->
             <div class="tab-pane fade" id="settings" role="tabpanel" aria-labelledby="settings-tab">
                 <div id="settings-content-placeholder">
@@ -103,12 +110,61 @@
     </div>
 </div>
 
-    @section Scripts {
-        <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-        <script>
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="~/Scripts/jquery.signalR-2.4.3.min.js"></script>
+    <script src="~/signalr/hubs"></script>
+    <script>
         $(document).ready(function () {
             var inventoryId = @Model.Inventory.Id;
             var antiForgeryToken = '@GetAntiForgeryToken()';
+
+
+            var discussionTab = $('#discussion-tab');
+            var discussionPlaceholder = $('#discussion-content-placeholder');
+            var inventoryIdString = "@Model.Inventory.Id";
+
+            discussionTab.one('shown.bs.tab', function() {
+                discussionPlaceholder.load('@Url.Action("_Discussion", "Inventory")?inventoryId=' + inventoryIdString, function() {
+                    var chat = $.connection.commentHub;
+
+                    chat.client.addNewMessageToPage = function (user, message, timestamp) {
+                        var newMessage = $('<div class="mb-2"></div>')
+                            .append($('<strong></strong>').text(user + ' '))
+                            .append($('<small class="text-muted"></small>').text('(' + timestamp + ')'))
+                            .append($('<p class="mb-0"></p>').text(message));
+
+                        $('#no-comments-message').remove();
+                        var container = $('#discussion-container');
+                        container.append(newMessage);
+                        container.scrollTop(container[0].scrollHeight);
+                    };
+
+                    $.connection.hub.start().done(function () {
+                        chat.server.joinInventoryGroup(inventoryIdString);
+
+                        discussionPlaceholder.on('submit', '#comment-form', function(e) {
+                            e.preventDefault();
+                            var form = $(this);
+                            var messageInput = $('#comment-message-input');
+
+                            $.ajax({
+                                url: form.attr('action'),
+                                type: form.attr('method'),
+                                data: form.serialize(),
+                                success: function() {
+                                    messageInput.val('').focus();
+                                },
+                                error: function() {
+                                    alert('Error: Could not send message.');
+                                }
+                            });
+                        });
+                    });
+                });
+            })
+
+
 
             // --- Fields Tab Logic ---
             var fieldsTab = $('#fields-tab');
@@ -201,7 +257,7 @@
 
             settingsPlaceholder.on('submit', '#inventory-settings-form', function (e) {
                 e.preventDefault();
-                clearTimeout(autoSaveTimer); 
+                clearTimeout(autoSaveTimer);
 
                 var form = $(this);
                 $.ajax({
@@ -218,6 +274,6 @@
                 });
             });
         });
-        </script>
-    }
+    </script>
+}
 

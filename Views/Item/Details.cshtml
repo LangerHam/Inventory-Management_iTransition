@@ -1,52 +1,107 @@
 ﻿@model Inventory_Management_iTransition.Models.Item
+@using Microsoft.AspNet.Identity
 @{
     ViewBag.Title = "Item Details";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var currentUserId = User.Identity.GetUserId();
+    var hasLiked = Model.Likes.Any(l => l.UserId == currentUserId);
 }
 
 <div class="container mt-4">
-    <div class="card shadow-sm">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <div>
-                <h2 class="mb-0">Item: <span class="text-primary">@Model.CustomId</span></h2>
-                <p class="text-muted mb-0">In Inventory: @Html.ActionLink(Model.Inventory.Title, "Details", "Inventory", new { id = Model.InventoryId }, null)</p>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4 class="mb-0">Item: @Model.CustomId</h4>
+                        <small class="text-muted">In Inventory: @Html.ActionLink(Model.Inventory.Title, "Details", "Inventory", new { id = Model.InventoryId }, null)</small>
+                    </div>
+                    <div>
+                        <!-- Like Button and Count -->
+                        @using (Html.BeginForm("Toggle", "Like", FormMethod.Post, new { id = "like-form", @class = "d-inline" }))
+                        {
+                            @Html.AntiForgeryToken()
+                            @Html.Hidden("itemId", Model.Id)
+                            <button type="submit" class="btn @(hasLiked ? "btn-danger" : "btn-outline-danger")">
+                                <i class="fas fa-heart"></i>
+                                <span id="like-count">@Model.Likes.Count()</span>
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-4">Created By</dt>
+                        <dd class="col-sm-8">@Model.CreatedBy.UserName</dd>
+
+                        <dt class="col-sm-4">Created Date</dt>
+                        <dd class="col-sm-8">@Model.CreatedAt.ToString("g")</dd>
+
+                        <dt class="col-sm-4">Last Updated</dt>
+                        <dd class="col-sm-8">@Model.UpdatedAt.ToString("g")</dd>
+                    </dl>
+                    <hr />
+                    <h5>Custom Fields</h5>
+                    @if (Model.CustomFieldValues.Any())
+                    {
+                        <dl class="row">
+                            @foreach (var fieldValue in Model.CustomFieldValues)
+                            {
+                                <dt class="col-sm-4">@fieldValue.CustomField.Title</dt>
+                                <dd class="col-sm-8">
+                                    @if (fieldValue.CustomField.Type == Inventory_Management_iTransition.Models.FieldType.Checkbox)
+                                    {
+                                        <span>@(fieldValue.Value == "true" ? "Yes" : "No")</span>
+                                    }
+                                    else
+                                    {
+                                        <span>@fieldValue.Value</span>
+                                    }
+                                </dd>
+                            }
+                        </dl>
+                    }
+                    else
+                    {
+                        <p class="text-muted">This item has no custom field data.</p>
+                    }
+                </div>
+                <div class="card-footer text-end">
+                    @Html.ActionLink("Back to Inventory", "Details", "Inventory", new { id = Model.InventoryId }, new { @class = "btn btn-secondary" })
+                </div>
             </div>
-            <div>
-                @* TODO: Add Edit and Delete buttons here, visible only to authorized users *@
-            </div>
-        </div>
-        <div class="card-body">
-            <dl class="row">
-                <dt class="col-sm-3">Created By</dt>
-                <dd class="col-sm-9">@Model.CreatedBy.UserName</dd>
-
-                <dt class="col-sm-3">Created At</dt>
-                <dd class="col-sm-9">@Model.CreatedAt.ToString("g")</dd>
-
-                <dt class="col-sm-3">Likes</dt>
-                <dd class="col-sm-9">
-                    <span class="badge bg-danger rounded-pill">
-                        <i class="bi bi-heart-fill"></i> @Model.Likes.Count()
-                    </span>
-                </dd>
-            </dl>
-
-            <hr />
-
-            <h4 class="mt-4 mb-3">Custom Fields</h4>
-            <dl class="row">
-                @foreach (var fieldValue in Model.CustomFieldValues)
-                {
-                    <dt class="col-sm-3">@fieldValue.CustomField.Title</dt>
-                    <dd class="col-sm-9">
-                        @* TODO: Add special rendering for links, checkboxes, etc. *@
-                        @Html.DisplayFor(modelItem => fieldValue.Value)
-                    </dd>
-                }
-            </dl>
-        </div>
-        <div class="card-footer text-muted">
-            Last Updated: @Model.UpdatedAt.ToString("g")
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('#like-form').on('submit', function (e) {
+                e.preventDefault();
+                var form = $(this);
+                var button = form.find('button');
+                var likeCountSpan = $('#like-count');
+
+                $.ajax({
+                    url: form.attr('action'),
+                    type: form.attr('method'),
+                    data: form.serialize(),
+                    success: function (response) {
+                        likeCountSpan.text(response.NewLikeCount);
+
+                        // Toggle the button's appearance
+                        if (button.hasClass('btn-danger')) {
+                            button.removeClass('btn-danger').addClass('btn-outline-danger');
+                        } else {
+                            button.removeClass('btn-outline-danger').addClass('btn-danger');
+                        }
+                    },
+                    error: function () {
+                        alert('An error occurred while liking the item.');
+                    }
+                });
+            });
+        });
+    </script>
+}
