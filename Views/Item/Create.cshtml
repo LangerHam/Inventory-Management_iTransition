@@ -5,67 +5,64 @@
 }
 
 <div class="container mt-4">
-    <div class="card shadow-sm">
-        <div class="card-header bg-light">
-            <h2 class="mb-0">Add New Item to <span class="text-primary">@Model.InventoryTitle</span></h2>
-            <p class="text-muted mb-0">Fill out the details for your new item below.</p>
-        </div>
-        <div class="card-body">
-            @using (Html.BeginForm("Create", "Item", FormMethod.Post, new { @class = "form-horizontal", role = "form" }))
-            {
-                @Html.AntiForgeryToken()
-                @Html.HiddenFor(m => m.InventoryId)
-
-                <hr />
-                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-
-                for (int i = 0; i < Model.FieldValues.Count; i++)
-                {
-                    @Html.HiddenFor(m => m.FieldValues[i].CustomFieldId)
-                    @Html.HiddenFor(m => m.FieldValues[i].FieldName)
-                    @Html.HiddenFor(m => m.FieldValues[i].FieldType)
-
-                    <div class="form-group row mb-3">
-                        @Html.LabelFor(m => m.FieldValues[i].Value, Model.FieldValues[i].FieldName, new { @class = "col-md-3 col-form-label" })
-                        <div class="col-md-9">
-                            @switch (Model.FieldValues[i].FieldType)
-                            {
-                                case Inventory_Management_iTransition.Models.FieldType.MultiLineText:
-                                    @Html.TextAreaFor(m => m.FieldValues[i].Value, new { @class = "form-control", rows = 4 })
-                                    break;
-
-                                case Inventory_Management_iTransition.Models.FieldType.Numeric:
-                                    @Html.TextBoxFor(m => m.FieldValues[i].Value, new { @class = "form-control", type = "number" })
-                                    break;
-
-                                case Inventory_Management_iTransition.Models.FieldType.Checkbox:
-                            <div class="form-check pt-2">
-                                @{ bool isChecked = Model.FieldValues[i].Value == "true"; }
-                                @Html.CheckBox("FieldValues[" + i + "].Value", isChecked, new { @class = "form-check-input" })
-                            </div>
-                                    break;
-
-                                case Inventory_Management_iTransition.Models.FieldType.DocumentLink:
-                                    @Html.TextBoxFor(m => m.FieldValues[i].Value, new { @class = "form-control", type = "url", placeholder = "https://example.com" })
-                                    break;
-
-                                case Inventory_Management_iTransition.Models.FieldType.SingleLineText:
-                                default:
-                                    @Html.TextBoxFor(m => m.FieldValues[i].Value, new { @class = "form-control" })
-                                    break;
-                            }
-                            @Html.ValidationMessageFor(m => m.FieldValues[i].Value, "", new { @class = "text-danger" })
-                        </div>
-                    </div>
-                }
-
-                <div class="form-group row mt-4">
-                    <div class="offset-md-3 col-md-9">
-                        <input type="submit" value="Create Item" class="btn btn-primary" />
-                        @Html.ActionLink("Cancel", "Details", "Inventory", new { id = Model.InventoryId }, new { @class = "btn btn-outline-secondary" })
-                    </div>
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>Add New Item to @Model.InventoryTitle</h4>
                 </div>
-            }
+                <div class="card-body">
+                    <p>Fill out the details for your new item below.</p>
+                    <hr />
+
+                    @using (Html.BeginForm("Create", "Item", FormMethod.Post))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.HiddenFor(m => m.InventoryId)
+
+                        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+                        for (int i = 0; i < Model.FieldValues.Count; i++)
+                        {
+                            <div class="form-group mb-3">
+                                @Html.LabelFor(m => m.FieldValues[i].Value, Model.FieldValues[i].FieldName, new { @class = "form-label" })
+                                @Html.HiddenFor(m => m.FieldValues[i].CustomFieldId)
+                                @Html.HiddenFor(m => m.FieldValues[i].FieldName)
+                                @Html.HiddenFor(m => m.FieldValues[i].FieldType)
+
+                                @switch (Model.FieldValues[i].FieldType)
+                                {
+                                    case Inventory_Management_iTransition.Models.FieldType.MultiLineText:
+                                        @Html.TextAreaFor(m => m.FieldValues[i].Value, 5, 1, new { @class = "form-control" })
+                                        break;
+                                    case Inventory_Management_iTransition.Models.FieldType.Checkbox:
+                                        <div class="form-check pt-2">
+                                            @Html.CheckBox(string.Format("FieldValues[{0}].Value", i), false, new { @class = "form-check-input", value = "true" })
+                                            <input type="hidden" name="@string.Format("FieldValues[{0}].Value", i)" value="false" />
+                                        </div>
+                                        break;
+                                    case Inventory_Management_iTransition.Models.FieldType.Numeric:
+                                        @Html.TextBoxFor(m => m.FieldValues[i].Value, new { @class = "form-control", type = "number" })
+                                        break;
+                                    case Inventory_Management_iTransition.Models.FieldType.DocumentLink:
+                                        @Html.TextBoxFor(m => m.FieldValues[i].Value, new { @class = "form-control", type = "url" })
+                                        break;
+                                    default: 
+                                        @Html.TextBoxFor(m => m.FieldValues[i].Value, new { @class = "form-control" })
+                                        break;
+                                }
+                                @Html.ValidationMessageFor(m => m.FieldValues[i].Value, "", new { @class = "text-danger" })
+                            </div>
+                        }
+
+                        <hr />
+                        <div class="d-flex justify-content-end">
+                            @Html.ActionLink("Cancel", "Details", "Inventory", new { id = Model.InventoryId }, new { @class = "btn btn-secondary me-2" })
+                            <input type="submit" value="Create Item" class="btn btn-primary" />
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 </div>

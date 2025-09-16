@@ -63,51 +63,92 @@ namespace Inventory_Management_iTransition.Services
 
         public async Task<string> GenerateIdAsync(Inventory inventory, InMContext context)
         {
-            var idBuilder = new StringBuilder();
-            var elements = inventory.CustomIdElements.OrderBy(e => e.Order);
-
-            foreach (var element in elements)
+            try
             {
-                switch (element.Type)
+                var idBuilder = new StringBuilder();
+                var elements = inventory.CustomIdElements.OrderBy(e => e.Order);
+
+                if (!elements.Any())
                 {
-                    case IdElementType.FixedText: 
-                        idBuilder.Append(element.ValueOrFormat);
-                        break;
-                    case IdElementType.Random20Bit: 
-                        idBuilder.Append(GenerateRandomHex(5));
-                        break;
-                    case IdElementType.Random32Bit: 
-                        idBuilder.Append(GenerateRandomHex(8));
-                        break;
-                    case IdElementType.Random6Digit: 
-                        idBuilder.Append(_random.Next(0, 1000000).ToString("D6"));
-                        break;
-                    case IdElementType.Random9Digit: 
-                        long random9Digit = (long)(_random.NextDouble() * 900000000L) + 100000000L;
-                        idBuilder.Append(random9Digit);
-                        break;
-                    case IdElementType.Guid: 
-                        idBuilder.Append(Guid.NewGuid().ToString());
-                        break;
-                    case IdElementType.DateTime: 
-                        idBuilder.Append(DateTime.UtcNow.ToString(element.ValueOrFormat));
-                        break;
-                    case IdElementType.Sequence: 
-                        var maxSequence = await context.Items
-                            .Where(i => i.InventoryId == inventory.Id)
-                            .Select(i => (int?)i.SequenceNumber)
-                            .DefaultIfEmpty(0)
-                            .MaxAsync();
-
-                        var nextSequence = (maxSequence ?? 0) + 1;
-
-                        idBuilder.Append(nextSequence.ToString(element.ValueOrFormat));
-                        break;
+                    return $"ITEM-{Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper()}";
                 }
-            }
 
-            return idBuilder.ToString();
+                foreach (var element in elements)
+                {
+                    switch (element.Type)
+                    {
+                        case IdElementType.FixedText:
+                            idBuilder.Append(element.ValueOrFormat ?? string.Empty);
+                            break;
+                        case IdElementType.Random20Bit:
+                            idBuilder.Append(GenerateRandomHex(5));
+                            break;
+                        case IdElementType.Random32Bit:
+                            idBuilder.Append(GenerateRandomHex(8));
+                            break;
+                        case IdElementType.Random6Digit:
+                            idBuilder.Append(_random.Next(0, 1000000).ToString("D6"));
+                            break;
+                        case IdElementType.Random9Digit:
+                            long random9Digit = (long)(_random.NextDouble() * 900000000L) + 100000000L;
+                            idBuilder.Append(random9Digit);
+                            break;
+                        case IdElementType.Guid:
+                            idBuilder.Append(Guid.NewGuid().ToString("N").Substring(0,
+                                string.IsNullOrEmpty(element.ValueOrFormat) ? 32 :
+                                int.TryParse(element.ValueOrFormat, out int length) && length > 0 && length <= 32 ? length : 32));
+                            break;
+                        case IdElementType.DateTime:
+                            try
+                            {
+                                string format = !string.IsNullOrEmpty(element.ValueOrFormat) ? element.ValueOrFormat : "yyyyMMdd";
+                                idBuilder.Append(DateTime.UtcNow.ToString(format));
+                            }
+                            catch (FormatException)
+                            {
+                                idBuilder.Append(DateTime.UtcNow.ToString("yyyyMMdd"));
+                            }
+                            break;
+                        case IdElementType.Sequence:
+                            try
+                            {
+                                var maxSequence = await context.Items
+                                    .Where(i => i.InventoryId == inventory.Id)
+                                    .Select(i => (int?)i.SequenceNumber)
+                                    .DefaultIfEmpty(0)
+                                    .MaxAsync();
+
+                                int nextSequence = (maxSequence ?? 0) + 1;
+                                string format = !string.IsNullOrEmpty(element.ValueOrFormat) ? element.ValueOrFormat : "D5";
+
+                                if (format.Contains("D") || format.Contains("d") || format.Contains("0"))
+                                {
+                                    idBuilder.Append(nextSequence.ToString(format));
+                                }
+                                else
+                                {
+                                    int padding;
+                                    if (int.TryParse(format, out padding) && padding > 0)
+                                        idBuilder.Append(nextSequence.ToString("D" + padding));
+                                    else
+                                        idBuilder.Append(nextSequence.ToString("D5"));
+                                }
+                            }
+                            catch (Exception)
+                            {
+                                idBuilder.Append("00001");
+                            }
+                            break;
+                    }
+                }
+                return idBuilder.ToString();
+            }
+            catch (Exception)
+            {
+                return $"ERR-{DateTime.UtcNow:yyMMdd}-{Guid.NewGuid().ToString("N").Substring(0, 6)}";
+            }
         }
+
 
         private string GenerateRandomHex(int length)
         {

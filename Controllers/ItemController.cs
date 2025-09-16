@@ -18,11 +18,12 @@ namespace Inventory_Management_iTransition.Controllers
     public class ItemController : Controller
     {
         private InMContext db;
-        private readonly IdFormatService _idFormatService = new IdFormatService();
+        private readonly IdFormatService _idFormatService;
 
         public ItemController()
         {
             db = new InMContext();
+            _idFormatService = new IdFormatService();
         }
 
         [AllowAnonymous]
@@ -60,10 +61,6 @@ namespace Inventory_Management_iTransition.Controllers
                 return HttpNotFound();
             }
 
-            // TODO: Add security check here.
-            // Verify if the current user has write access to this inventory.
-            // (IsOwner, IsAdmin, IsPublic, or in InventoryUserAccess list)
-
             var viewModel = new ItemFormViewModel
             {
                 InventoryId = inventory.Id,
@@ -72,7 +69,7 @@ namespace Inventory_Management_iTransition.Controllers
                 {
                     CustomFieldId = cf.Id,
                     FieldName = cf.Title,
-                    FieldType = cf.Type,
+                    FieldType = cf.Type
                 }).ToList()
             };
 
@@ -96,7 +93,19 @@ namespace Inventory_Management_iTransition.Controllers
                 return View(viewModel);
             }
 
+            var inventory = await db.Inventories.Include(i => i.CustomIdElements).FirstOrDefaultAsync(i => i.Id == viewModel.InventoryId);
+            if (inventory == null)
+            {
+                return HttpNotFound();
+            }
+
             var userId = User.Identity.GetUserId();
+            if (inventory.OwnerId != userId && !User.IsInRole("Admin") &&
+                !await db.InventoryUserAccesses.AnyAsync(a => a.InventoryId == viewModel.InventoryId && a.UserId == userId))
+            {
+                return new HttpStatusCodeResult(HttpStatusCode.Forbidden, "You don't have permission to add items to this inventory.");
+            }
+
             var newItem = new Item
             {
                 InventoryId = viewModel.InventoryId,
@@ -105,53 +114,84 @@ namespace Inventory_Management_iTransition.Controllers
                 UpdatedAt = DateTime.UtcNow,
             };
 
-            var inventory = await db.Inventories.Include(i => i.CustomIdElements).FirstOrDefaultAsync(i => i.Id == viewModel.InventoryId);
-            if (inventory == null) return HttpNotFound();
-
-            for (int i = 0; i < 5; i++)
+            using (var transaction = db.Database.BeginTransaction())
             {
-                var generatedId = await _idFormatService.GenerateIdAsync(inventory, db);
-                var isDuplicate = await db.Items.AnyAsync(it => it.InventoryId == viewModel.InventoryId && it.CustomId == generatedId);
-
-                if (!isDuplicate)
+                try
                 {
-                    newItem.CustomId = generatedId;
-                    break;
+                    if (inventory.CustomIdElements.Any(e => e.Type == IdElementType.Sequence))
+                    {
+                        var maxSeq = await db.Items
+                            .Where(i => i.InventoryId == inventory.Id)
+                            .Select(i => (int?)i.SequenceNumber)
+                            .DefaultIfEmpty(0)
+                            .MaxAsync();
+                        newItem.SequenceNumber = (maxSeq ?? 0) + 1;
+                    }
+
+                    for (int i = 0; i < 5; i++)
+                    {
+                        var generatedId = await _idFormatService.GenerateIdAsync(inventory, db);
+                        var isDuplicate = await db.Items.AnyAsync(it => it.InventoryId == viewModel.InventoryId && it.CustomId == generatedId);
+
+                        if (!isDuplicate)
+                        {
+                            newItem.CustomId = generatedId;
+                            break;
+                        }
+                    }
+
+                    if (string.IsNullOrEmpty(newItem.CustomId))
+                    {
+                        ModelState.AddModelError("", "Could not generate a unique item ID. Please try again.");
+                        var inventoryForForm = await db.Inventories.Include(i => i.CustomFields).FirstOrDefaultAsync(i => i.Id == viewModel.InventoryId);
+                        viewModel.InventoryTitle = inventoryForForm.Title;
+                        viewModel.FieldValues = inventoryForForm.CustomFields.Select(cf => new CustomFieldValueViewModel
+                        {
+                            CustomFieldId = cf.Id,
+                            FieldName = cf.Title,
+                            FieldType = cf.Type
+                        }).ToList();
+                        return View(viewModel);
+                    }
+
+                    db.Items.Add(newItem);
+                    await db.SaveChangesAsync();
+
+                    if (viewModel.FieldValues != null)
+                    {
+                        foreach (var fieldValueModel in viewModel.FieldValues)
+                        {
+                            var customFieldValue = new CustomFieldValue
+                            {
+                                ItemId = newItem.Id,
+                                CustomFieldId = fieldValueModel.CustomFieldId,
+                                Value = fieldValueModel.Value ?? (fieldValueModel.FieldType == FieldType.Checkbox ? "false" : "")
+                            };
+                            db.CustomFieldValues.Add(customFieldValue);
+                        }
+                        await db.SaveChangesAsync();
+                    }
+
+                    transaction.Commit();
+                    return RedirectToAction("Details", "Inventory", new { id = viewModel.InventoryId });
+                }
+                catch (Exception ex)
+                {
+                    transaction.Rollback();
+                    ModelState.AddModelError("", "An error occurred while saving the item: " + ex.Message);
+                    var inventoryForForm = await db.Inventories.Include(i => i.CustomFields).FirstOrDefaultAsync(i => i.Id == viewModel.InventoryId);
+                    viewModel.InventoryTitle = inventoryForForm.Title;
+                    viewModel.FieldValues = inventoryForForm.CustomFields.Select(cf => new CustomFieldValueViewModel
+                    {
+                        CustomFieldId = cf.Id,
+                        FieldName = cf.Title,
+                        FieldType = cf.Type
+                    }).ToList();
+                    return View(viewModel);
                 }
             }
-
-            if (string.IsNullOrEmpty(newItem.CustomId))
-            {
-                ModelState.AddModelError("", "Could not generate a unique item ID. The inventory may be very busy. Please try again.");
-                var inventoryForForm = await db.Inventories.Include(i => i.CustomFields).FirstOrDefaultAsync(i => i.Id == viewModel.InventoryId);
-                viewModel.InventoryTitle = inventoryForForm.Title;
-                viewModel.FieldValues = inventoryForForm.CustomFields.Select(cf => new CustomFieldValueViewModel
-                {
-                    CustomFieldId = cf.Id,
-                    FieldName = cf.Title,
-                    FieldType = cf.Type
-                }).ToList();
-                return View(viewModel);
-            }
-
-            db.Items.Add(newItem);
-            await db.SaveChangesAsync();
-
-            foreach (var fieldValueModel in viewModel.FieldValues)
-            {
-                var customFieldValue = new CustomFieldValue
-                {
-                    ItemId = newItem.Id,
-                    CustomFieldId = fieldValueModel.CustomFieldId,
-                    Value = fieldValueModel.Value ?? (fieldValueModel.FieldType == FieldType.Checkbox ? "false" : "")
-                };
-                db.CustomFieldValues.Add(customFieldValue);
-            }
-
-            await db.SaveChangesAsync();
-
-            return RedirectToAction("Details", "Inventory", new { id = viewModel.InventoryId });
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]

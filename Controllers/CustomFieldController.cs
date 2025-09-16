@@ -46,38 +46,51 @@ namespace Inventory_Management_iTransition.Controllers
                 Fields = inventory.CustomFields.ToList()
             };
 
-            return PartialView(viewModel);
+            return PartialView("_FieldList", viewModel);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<ActionResult> Create(CustomFieldViewModel fieldViewModel)
+        public async Task<ActionResult> Create(CustomFieldManagementViewModel viewModel)
         {
+            var fieldViewModel = viewModel.NewField;
+
             if (ModelState.IsValid)
             {
-                var inventory = await db.Inventories.FindAsync(fieldViewModel.InventoryId);
-                var currentUserId = User.Identity.GetUserId();
+                var inventory = await db.Inventories.FindAsync(viewModel.InventoryId);
+                if (inventory == null)
+                {
+                    return new HttpStatusCodeResult(HttpStatusCode.BadRequest, "Inventory not found.");
+                }
 
+                var currentUserId = User.Identity.GetUserId();
                 if (inventory.OwnerId != currentUserId && !User.IsInRole("Admin"))
                 {
                     return new HttpStatusCodeResult(HttpStatusCode.Forbidden);
                 }
 
-                var customField = new CustomField
+                var existingFieldsCount = await db.CustomFields
+                    .CountAsync(cf => cf.InventoryId == viewModel.InventoryId && cf.Type == fieldViewModel.FieldType);
+
+                if (existingFieldsCount >= 3)
                 {
-                    InventoryId = fieldViewModel.InventoryId,
+                    ModelState.AddModelError("NewField.Title", $"You cannot add more than 3 fields of type '{fieldViewModel.FieldType}'.");
+                    return await _FieldList(viewModel.InventoryId);
+                }
+
+                var newField = new CustomField
+                {
+                    InventoryId = viewModel.InventoryId,
                     Title = fieldViewModel.Title,
                     Type = fieldViewModel.FieldType,
                     DisplayInItemTable = fieldViewModel.ShowInItemTable
                 };
 
-                db.CustomFields.Add(customField);
+                db.CustomFields.Add(newField);
                 await db.SaveChangesAsync();
-
-                return RedirectToAction("_FieldList", new { inventoryId = fieldViewModel.InventoryId });
             }
 
-            return new HttpStatusCodeResult(HttpStatusCode.BadRequest, "Invalid data submitted.");
+            return await _FieldList(viewModel.InventoryId);
         }
 
         [HttpPost]

@@ -11,7 +11,13 @@ namespace Inventory_Management_iTransition.ViewModel
     {
         public int InventoryId { get; set; }
         public List<CustomField> Fields { get; set; }
-        public CustomFieldViewModel NewField { get; set; } 
+        public CustomFieldViewModel NewField { get; set; }
+
+        public CustomFieldManagementViewModel()
+        {
+            Fields = new List<CustomField>();
+            NewField = new CustomFieldViewModel();
+        }
     }
 
     public class CustomFieldViewModel
